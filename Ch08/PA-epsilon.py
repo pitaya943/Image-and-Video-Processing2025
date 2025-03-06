@@ -102,6 +102,13 @@ def generate_irregular_shape(num_points, base_radius, noise_scale, smooth_factor
     
     return x, y
 
+def get_taiwan_shape(num_of_data):
+    points = np.loadtxt(f"/Users/pitaya943/Documents/NTUST/碩一下課程/Image and Video Processing/Ch08/taiwan_points_{num_of_data}.csv", delimiter=",", skiprows=1)
+    x = points[:, 0]
+    y = points[:, 1]
+    
+    return x, y
+
 def shape_one_dim_array(arr):
     n = arr.shape[0]
     upper_indices = np.triu_indices(n, k=1)
@@ -120,18 +127,22 @@ def get_error(points):
     return error
 
 def main():
-    S = 500  # 設定欲尋找的頂點數
+    S = 100  # 設定欲尋找的頂點數
     epsilon_init = 0.2  # 設定允許的誤差上限
 
     # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
-    x, y = generate_irregular_shape(1000, 10, 2, 10)
+    # x, y = generate_irregular_shape(1000, 10, 2, 10)
+
+    # 取得台灣形狀點集 parameter 為取多少點的台灣資料集
+    x, y = get_taiwan_shape(1000)
     points = np.column_stack((x, y))
+    points = points[:-1]
 
     # 預先計算每一段的誤差
     error = get_error(points)
-
     # 把 error 轉成一維後對其作排序 (大到小)
     sorted_error = shape_one_dim_array(error)
+
     # 取中間的 error 做第二次的 epsilon
     epsilon_index = 0
     start_index = 0
@@ -139,14 +150,14 @@ def main():
     best_indices = None
     best_approx_points = None
     history_index_path = [epsilon_index]
-    count = 0
+    count_loop = 0
 
     # 先做一次 PA-#
     indices, approx_points = optimal_polygon_approximation(points, epsilon_init, error)
     print('------------------------------')
     # 遞迴做 PA-# 值到頂點數符合 PA-epsilon 所求
     while start_index <= end_index:
-        count += 1
+        count_loop += 1
         epsilon_index = (end_index + start_index) // 2
         indices, approx_points = optimal_polygon_approximation(points, sorted_error[epsilon_index], error)
         if len(indices) == S:
@@ -175,13 +186,14 @@ def main():
     print(f'PA-epsilon vertices coordinate: {best_approx_points}\n')
     print(f'Number of vertices {len(best_indices)}')
     print(f'Index path {history_index_path}')
-    print(f'While loop runs {count} times')
+    print(f'While loop runs {count_loop} times')
     
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(8, 8))
     plt.plot(x, y, 'b-', label='Original Curve')
-    plt.plot(best_approx_points[:, 0], best_approx_points[:, 1], 'ro-', linewidth=2, label='PA-epsilon')
+    plt.plot(best_approx_points[:, 0], best_approx_points[:, 1], 'r.-', linewidth=2, label='PA-epsilon')
     plt.title(f'Polygonal Approximation - Epsilon ( S = {S} &Fit epsilon = {sorted_error[epsilon_index]:.2f} )')
     plt.legend()
+    plt.axis('equal')
     plt.show()
 
 cProfile.run('main()')
