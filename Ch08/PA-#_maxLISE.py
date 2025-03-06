@@ -125,7 +125,7 @@ def main():
     plt.figure(figsize=(8, 6))
     plt.plot(x, y, 'b-', label='Original Curve')
     plt.plot(approx_points[:, 0], approx_points[:, 1], 'ro-', linewidth=2, label='PA-#')
-    plt.title(f"Polygonal Approximation (epsilon = {epsilon})")
+    plt.title(f"Polygonal Approximation - # (epsilon = {epsilon})")
     plt.legend()
     plt.show()
 

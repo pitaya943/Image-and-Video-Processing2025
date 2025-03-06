@@ -120,7 +120,7 @@ def get_error(points):
     return error
 
 def main():
-    S = 250  # 設定欲尋找的頂點數
+    S = 500  # 設定欲尋找的頂點數
     epsilon_init = 0.2  # 設定允許的誤差上限
 
     # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
@@ -144,7 +144,7 @@ def main():
     # 先做一次 PA-#
     indices, approx_points = optimal_polygon_approximation(points, epsilon_init, error)
     print('------------------------------')
-    # 遞迴做 PA-# 值到頂點數符合 PA-epsilon所求
+    # 遞迴做 PA-# 值到頂點數符合 PA-epsilon 所求
     while start_index <= end_index:
         count += 1
         epsilon_index = (end_index + start_index) // 2
