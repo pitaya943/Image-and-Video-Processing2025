@@ -76,7 +76,7 @@ def optimal_polygon_approximation(points, epsilon):
     approx_points = points[indices]
     return indices, approx_points
 
-def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10):
+def generate_irregular_shape(num_points, base_radius, noise_scale, smooth_factor):
     """
     生成一個不規則的形狀（例如地圖邊緣）
     
@@ -90,7 +90,7 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
       x, y: 形狀邊緣的 x 和 y 坐標
     """
     # 生成 0 到 2π 區間均勻分布的角度
-    angles = np.linspace(0, 2*np.pi, num_points, endpoint=False)
+    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
     
     # 生成每個角度對應的隨機噪音 這裡使用標準正態分佈
     noise = np.random.randn(num_points) * noise_scale
@@ -110,10 +110,10 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
 
 def main():
     # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
-    x, y = generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10)
+    x, y = generate_irregular_shape(1000, 10, 2, 10)
     points = np.column_stack((x, y))
     
-    epsilon = 0.2  # 設定允許的誤差上限
+    epsilon = 0.5  # 設定允許的誤差上限
     indices, approx_points = optimal_polygon_approximation(points, epsilon)
     print("PA-# vertices:", indices)
     print("PA-# vertices coordinate:\n", approx_points)

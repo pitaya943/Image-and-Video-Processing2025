@@ -1,12 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
-import math
 
 def segment_error_sum_vectorized(positions, i, j):
     """
-    向量化計算從 positions[i] 到 positions[j] 之間所有中間點，
-    與直線 (positions[i], positions[j]) 的距離平方和。
+    向量化計算從 positions[i] 到 positions[j] 之間所有中間點
+    與直線 (positions[i], positions[j]) 的距離平方和
 
     如果中間無點 (即 j <= i + 1) 則回傳 0
     """
@@ -71,7 +70,7 @@ def optimal_polygon_approximation(points, epsilon, error):
     approx_points = points[indices]
     return indices, approx_points
 
-def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10):
+def generate_irregular_shape(num_points, base_radius, noise_scale, smooth_factor):
     """
     生成一個不規則的形狀（例如地圖邊緣）
     
@@ -85,7 +84,7 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
       x, y: 形狀邊緣的 x 和 y 坐標
     """
     # 生成 0 到 2π 區間均勻分布的角度
-    angles = np.linspace(0, 2*np.pi, num_points, endpoint=False)
+    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
     
     # 生成每個角度對應的隨機噪音 這裡使用標準正態分佈
     noise = np.random.randn(num_points) * noise_scale
@@ -103,80 +102,85 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
     
     return x, y
 
-def merge_sort(arr):
-    if len(arr) <= 1:
-        return arr
-    
-    mid = len(arr) // 2
-    left = merge_sort(arr[:mid])
-    right = merge_sort(arr[mid:])
+def shape_one_dim_array(arr):
+    n = arr.shape[0]
+    upper_indices = np.triu_indices(n, k=1)
+    arr_upper = arr[upper_indices]
+    arr_upper = arr_upper[arr_upper != 0]
+    sorted_arr = np.sort(arr_upper)[::-1]
+    return sorted_arr
 
-    return merge(left, right)
-
-def merge(left, right):
-    merged = []
-    i = j = 0
-    while i < len(left) and j < len(right):
-        if left[i] >= right[j]:
-            merged.append(left[i])
-            i += 1
-        else:
-            merged.append(right[j])
-            j += 1
-    merged.extend(left[i:])
-    merged.extend(right[j:])
-    return merged
-
-def main():
-    S = 10  # 設定欲尋找的頂點數
-    epsilon = 0.2  # 設定允許的誤差上限
-
-    # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
-    x, y = generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10)
-    points = np.column_stack((x, y))
-
+# 計算每一段的誤差：error[i, j] 表示從點 i 到 j 的段誤差
+def get_error(points):
     n = len(points)
-    # 預先計算每一段的誤差：error[i, j] 表示從點 i 到 j 的段誤差
     error = np.zeros((n, n))
     for i in range(n):
         for j in range(i + 1, n):
             error[i, j] = segment_error_sum_vectorized(points, i, j)
-    # 先做一次 PA-#
-    indices, approx_points = optimal_polygon_approximation(points, epsilon, error)
+    return error
 
-    # 把 error 轉成一維
-    one_dim_error = error.flatten()
-    # 對一維 error 作排序 (大到小)
-    sorted_error = merge_sort(one_dim_error)
+def main():
+    S = 250  # 設定欲尋找的頂點數
+    epsilon_init = 0.2  # 設定允許的誤差上限
+
+    # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
+    x, y = generate_irregular_shape(1000, 10, 2, 10)
+    points = np.column_stack((x, y))
+
+    # 預先計算每一段的誤差
+    error = get_error(points)
+
+    # 把 error 轉成一維後對其作排序 (大到小)
+    sorted_error = shape_one_dim_array(error)
     # 取中間的 error 做第二次的 epsilon
-    index = n // 2
-    epsilon_target = sorted_error[index]
-    best_indices = indices
-    best_approx_points = approx_points
+    epsilon_index = 0
+    start_index = 0
+    end_index = len(sorted_error) - 1
+    best_indices = None
+    best_approx_points = None
+    history_index_path = [epsilon_index]
+    count = 0
 
+    # 先做一次 PA-#
+    indices, approx_points = optimal_polygon_approximation(points, epsilon_init, error)
+    print('------------------------------')
     # 遞迴做 PA-# 值到頂點數符合 PA-epsilon所求
-    while index >= 1:
+    while start_index <= end_index:
+        count += 1
+        epsilon_index = (end_index + start_index) // 2
+        indices, approx_points = optimal_polygon_approximation(points, sorted_error[epsilon_index], error)
         if len(indices) == S:
-            epsilon_target = sorted_error[index]
             best_indices = indices
             best_approx_points = approx_points
+            print(f'Find a approximation path with {len(indices)} vertices.')
             break
-        # 若頂點數 > S 則放大 epsilon (epsilon上升 頂點數會變少)
+        # 若頂點數 > S 則往 sorted_error 左邊找 epsilon 相當於放大 epsilon (epsilon上升 頂點數會變少)
         elif len(indices) > S:
-            index = index // 2
-            indices, approx_points = optimal_polygon_approximation(points, sorted_error[index], error)
-        # 若頂點 < S 則縮小 epsilon (epsilon下降 頂點數會變多)
+            print(f'(len_indices = {len(indices)}) > (S = {S})')
+            end_index = epsilon_index - 1
+        # 若頂點 < S 則往 sorted_error 右邊找 epsilon 相當於縮小 epsilon (epsilon下降 頂點數會變多)
         else:
-            index = math.floor(index * (3/2))
-            indices, approx_points = optimal_polygon_approximation(points, sorted_error[index], error)
+            print(f'(len_indices = {len(indices)}) < (S = {S})')
+            start_index = epsilon_index + 1
 
-    print("PA-epsilon vertices:", best_indices)
-    print("PA-epsilon vertices coordinate:\n", best_approx_points)
+        print(f'epsilon_index = {epsilon_index}')
+        print(f'epsilon = {sorted_error[epsilon_index]}')
+        print(f'start_index = {start_index}')
+        print(f'end_index = {end_index}')
+        print('------------------------------')
+
+        history_index_path.append(epsilon_index)
+
+    print(f'\nPA-epsilon vertices: {best_indices}')
+    print(f'PA-epsilon vertices coordinate: {best_approx_points}\n')
+    print(f'Number of vertices {len(best_indices)}')
+    print(f'Index path {history_index_path}')
+    print(f'While loop runs {count} times')
     
     plt.figure(figsize=(8, 6))
     plt.plot(x, y, 'b-', label='Original Curve')
     plt.plot(best_approx_points[:, 0], best_approx_points[:, 1], 'ro-', linewidth=2, label='PA-epsilon')
-    plt.title(f"Polygonal Approximation - Epsilon ( S = {S} &best epsilon = {epsilon_target:.2f} )")
+    plt.title(f'Polygonal Approximation - Epsilon ( S = {S} &Fit epsilon = {sorted_error[epsilon_index]:.2f} )')
     plt.legend()
     plt.show()
 

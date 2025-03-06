@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
 
-def segment_error_sum_vectorized(points, i, j):
+def segment_error_max_vectorized(points, i, j):
     """
     計算從 points[i] 到 points[j] 之間的子序列
     與直線 (points[i], points[j]) 的最大垂直誤差
@@ -51,7 +51,7 @@ def optimal_polygon_approximation(points, epsilon):
     error = np.zeros((n, n))
     for i in range(n):
         for j in range(i + 1, n):
-            error[i, j] = segment_error_sum_vectorized(points, i, j)
+            error[i, j] = segment_error_max_vectorized(points, i, j)
     
     # dp[i] 表示從起點到點 i 所需的最少段數
     dp = [float('inf')] * n
@@ -79,7 +79,7 @@ def optimal_polygon_approximation(points, epsilon):
     approx_points = points[indices]
     return indices, approx_points
 
-def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10):
+def generate_irregular_shape(num_points, base_radius, noise_scale, smooth_factor):
     """
     生成一個不規則的形狀（例如地圖邊緣）
     
@@ -93,7 +93,7 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
       x, y: 形狀邊緣的 x 和 y 坐標
     """
     # 生成 0 到 2π 區間均勻分布的角度
-    angles = np.linspace(0, 2*np.pi, num_points, endpoint=False)
+    angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
     
     # 生成每個角度對應的隨機噪音 這裡使用標準正態分佈
     noise = np.random.randn(num_points) * noise_scale
@@ -114,10 +114,10 @@ def generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smoo
 # 測試範例
 def main():
     # 產生一個測試曲線（例如圓形的離散點 但不強制閉合）
-    x, y = generate_irregular_shape(num_points=300, base_radius=10, noise_scale=2, smooth_factor=10)
+    x, y = generate_irregular_shape(1000, 10, 2, 10)
     points = np.column_stack((x, y))
     
-    epsilon = 0.1  # 設定允許的誤差上限
+    epsilon = 0.2  # 設定允許的誤差上限
     indices, approx_points = optimal_polygon_approximation(points, epsilon)
     print("PA-# vertices:", indices)
     print("PA-# vertices coordinate:\n", approx_points)
